@@ -18,8 +18,11 @@ Most job portals only display available jobs. This project adds an extra layer b
 
 Tech Stack
 Frontend: HTML, CSS, JavaScript
+
 Backend: Node.js, Express.js
+
 Database: MongoDB
+
 Running the Project
 Clone the repository
 git clone https://github.com/SShruthikeerthana/job-portal.git
@@ -34,9 +37,6 @@ npm start
 Open in browser
 By default, the server runs on:
 http://localhost:5000
-
-Domain 
-Software Development
 
 Demo Video Link
 https://drive.google.com/file/d/10ZY3CR55uf2Y1AVt2umf7ATJaP9dQ_tj/view?usp=sharing
