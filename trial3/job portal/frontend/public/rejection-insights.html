@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Application Insights - Job Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    .insight-card {
+      transition: all 0.3s ease;
+      border-left: 4px solid #3b82f6;
+    }
+    .insight-card.high {
+      border-left-color: #ef4444;
+      background: linear-gradient(to right, #fef2f2, #ffffff);
+    }
+    .insight-card.medium {
+      border-left-color: #f59e0b;
+      background: linear-gradient(to right, #fffbeb, #ffffff);
+    }
+    .insight-card.low {
+      border-left-color: #10b981;
+      background: linear-gradient(to right, #f0fdf4, #ffffff);
+    }
+    .skill-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      margin: 2px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .missing-skill {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .present-skill {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      stroke: #3b82f6;
+      stroke-width: 3;
+      fill: transparent;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="container mx-auto px-4">
+      <div class="flex justify-between items-center h-16">
+        <a href="index.html" class="text-xl font-bold text-blue-600">Job Portal</a>
+        <div class="flex items-center space-x-4">
+          <a href="jobseeker-dashboard.html" class="text-gray-600 hover:text-blue-600">Dashboard</a>
+          <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="text-center mb-8 animate__animated animate__fadeInDown">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">📊 Application Insights</h1>
+        <p class="text-gray-600">Understand why you might not get selected and how to improve</p>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p class="mt-4 text-gray-600">Analyzing your application...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="error" class="hidden bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <div class="text-red-600 text-xl mb-2">⚠️ Error</div>
+        <p id="errorMessage" class="text-red-700"></p>
+      </div>
+
+      <!-- Insights Content -->
+      <div id="insightsContent" class="hidden space-y-6 animate__animated animate__fadeIn">
+        <!-- Job Details -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border">
+          <h2 class="text-xl font-semibold mb-4">📋 Job Details</h2>
+          <div id="jobDetails" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Job details will be populated here -->
+          </div>
+        </div>
+
+        <!-- Overall Assessment -->
+        <div id="overallAssessment" class="bg-white rounded-lg shadow-sm p-6 border">
+          <h2 class="text-xl font-semibold mb-4">🎯 Overall Assessment</h2>
+          <div class="flex items-center justify-between">
+            <div>
+              <div id="severityBadge" class="inline-block px-4 py-2 rounded-full text-white font-medium mb-2"></div>
+              <p id="assessmentText" class="text-gray-600"></p>
+            </div>
+            <div class="text-center">
+              <svg width="120" height="120" class="progress-ring">
+                <circle class="progress-ring-circle" id="progressCircle" cx="60" cy="60" r="54"></circle>
+              </svg>
+              <div class="mt-2">
+                <span id="matchPercentage" class="text-2xl font-bold text-blue-600"></span>
+                <p class="text-sm text-gray-600">Match Score</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analysis Sections -->
+        <div id="analysisSections" class="space-y-4">
+          <!-- Sections will be populated dynamically -->
+        </div>
+
+        <!-- Action Items -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+          <h3 class="text-lg font-semibold mb-4 text-blue-800">🚀 Recommended Actions</h3>
+          <ul id="actionItems" class="space-y-2">
+            <!-- Action items will be populated here -->
+          </ul>
+        </div>
+
+        <!-- Back Button -->
+        <div class="text-center">
+          <a href="jobseeker-dashboard.html" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+            ← Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const token = localStorage.getItem('token');
+    const applicationId = new URLSearchParams(window.location.search).get('applicationId');
+
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+
+    async function fetchInsights() {
+      try {
+        const response = await fetch(`/api/applications/insights/${applicationId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch insights');
+        }
+
+        const data = await response.json();
+        displayInsights(data);
+      } catch (error) {
+        console.error('Error:', error);
+        showError(error.message);
+      }
+    }
+
+    function displayInsights(data) {
+      const { application, analysis, insights } = data;
+      
+      // Hide loading, show content
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('insightsContent').classList.remove('hidden');
+
+      // Display job details
+      displayJobDetails(application.job);
+      
+      // Display overall assessment
+      displayOverallAssessment(insights);
+      
+      // Display analysis sections
+      displayAnalysisSections(insights.sections);
+      
+      // Display action items
+      displayActionItems(analysis.suggestions);
+    }
+
+    function displayJobDetails(job) {
+      const jobDetails = document.getElementById('jobDetails');
+      jobDetails.innerHTML = `
+        <div>
+          <span class="text-gray-500 text-sm">Position</span>
+          <p class="font-semibold">${job.title}</p>
+        </div>
+        <div>
+          <span class="text-gray-500 text-sm">Company</span>
+          <p class="font-semibold">${job.company}</p>
+        </div>
+        <div>
+          <span class="text-gray-500 text-sm">Experience Required</span>
+          <p class="font-semibold">${job.experience}</p>
+        </div>
+        <div>
+          <span class="text-gray-500 text-sm">Location</span>
+          <p class="font-semibold">${job.location}</p>
+        </div>
+        <div>
+          <span class="text-gray-500 text-sm">Salary</span>
+          <p class="font-semibold">${job.salary}</p>
+        </div>
+        <div>
+          <span class="text-gray-500 text-sm">Skills Required</span>
+          <div class="mt-1">
+            ${job.skills.map(skill => `<span class="skill-tag missing-skill">${skill}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function displayOverallAssessment(insights) {
+      const severityBadge = document.getElementById('severityBadge');
+      const assessmentText = document.getElementById('assessmentText');
+      const matchPercentage = document.getElementById('matchPercentage');
+      const progressCircle = document.getElementById('progressCircle');
+
+      // Set severity badge
+      severityBadge.textContent = insights.severity.toUpperCase() + ' RISK';
+      severityBadge.className = `inline-block px-4 py-2 rounded-full text-white font-medium mb-2 bg-${insights.color}-600`;
+
+      // Set assessment text
+      const assessmentMessages = {
+        low: "Your profile matches well with this position. Focus on interview preparation!",
+        medium: "Your profile has some gaps. Consider improving the areas highlighted below.",
+        high: "Significant gaps exist. We recommend addressing these before applying to similar roles."
+      };
+      assessmentText.textContent = assessmentMessages[insights.severity];
+
+      // Find keyword match section
+      const keywordSection = insights.sections.find(s => s.type === 'keyword_match');
+      if (keywordSection) {
+        const percentageText = keywordSection.content;
+        const percentage = parseInt(percentageText) || 0;
+        matchPercentage.textContent = percentage + '%';
+        
+        // Set progress circle
+        const circumference = 2 * Math.PI * 54;
+        const offset = circumference - (percentage / 100) * circumference;
+        progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressCircle.style.strokeDashoffset = offset;
+      } else {
+        matchPercentage.textContent = '0%';
+        // Set progress circle to 0
+        const circumference = 2 * Math.PI * 54;
+        progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressCircle.style.strokeDashoffset = circumference;
+      }
+    }
+
+    function displayAnalysisSections(sections) {
+      const container = document.getElementById('analysisSections');
+      container.innerHTML = sections.map(section => {
+        let contentHtml = '';
+        
+        switch(section.type) {
+          case 'missing_skills':
+            // Handle if content is a string or array
+            let skillsArray = [];
+            if (typeof section.content === 'string') {
+              // Split the string by commas and clean up
+              skillsArray = section.content.split(',').map(skill => skill.trim()).filter(skill => skill);
+            } else if (Array.isArray(section.content)) {
+              skillsArray = section.content;
+            }
+            contentHtml = skillsArray.map(skill => 
+              `<span class="skill-tag missing-skill">${skill}</span>`
+            ).join('');
+            break;
+          case 'experience_gap':
+            contentHtml = `<p class="text-gray-700 font-medium">${section.content}</p>`;
+            break;
+          case 'keyword_match':
+            const percentageText = section.content;
+            const percentage = parseInt(percentageText.match(/\d+/)?.[0]) || 0;
+            contentHtml = `
+              <div class="flex items-center">
+                <div class="flex-1 bg-gray-200 rounded-full h-4 mr-4">
+                  <div class="bg-blue-600 h-4 rounded-full" style="width: ${percentage}%"></div>
+                </div>
+                <span class="font-semibold">${section.content}</span>
+              </div>
+            `;
+            break;
+          case 'positive_match':
+            contentHtml = `<p class="text-green-700 font-medium text-lg">${section.content}</p>`;
+            break;
+          case 'suggestions':
+            contentHtml = `<ul class="space-y-2">${section.content.map(s => `<li class="flex items-start"><span class="text-green-500 mr-2">✓</span><span>${s}</span></li>`).join('')}</ul>`;
+            break;
+        }
+
+        return `
+          <div class="insight-card ${section.impact} bg-white rounded-lg shadow-sm p-6 border">
+            <h3 class="text-lg font-semibold mb-3">${section.title}</h3>
+            ${contentHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function displayActionItems(suggestions) {
+      const actionItems = document.getElementById('actionItems');
+      actionItems.innerHTML = suggestions.map(suggestion => 
+        `<li class="flex items-start">
+          <span class="text-blue-600 mr-3 mt-1">→</span>
+          <span class="text-gray-700">${suggestion}</span>
+        </li>`
+      ).join('');
+    }
+
+    function showError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('errorMessage').textContent = message;
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    // Load insights on page load
+    if (applicationId) {
+      fetchInsights();
+    } else {
+      showError('No application ID provided');
+    }
+  </script>
+</body>
+</html>

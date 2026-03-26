@@ -8,6 +8,14 @@ const userSchema = new mongoose.Schema({
   companyName: { type: String },
   resetPasswordToken: String,
   resetPasswordExpires: Date,
+  skills: {
+    type: [String],
+    default: []
+  },
+  experience: {
+    type: Number,
+    default: 0
+  },
   resume: {
     type: String,
   },

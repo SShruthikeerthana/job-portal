@@ -12,7 +12,14 @@ const applicationSchema = new mongoose.Schema({
   },
   statusUpdatedAt: { type: Date, default: Date.now },
   statusUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  appliedDate: { type: Date, default: Date.now }
+  appliedDate: { type: Date, default: Date.now },
+  rejectionAnalysis: {
+    missingSkills: [String],
+    experienceGap: String,
+    keywordMatch: Number,
+    reasons: [String],
+    suggestions: [String]
+  }
 });
 
 // Prevent duplicate applications

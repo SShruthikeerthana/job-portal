@@ -275,27 +275,41 @@
 
       if (!file) return alert("Please upload your resume.");
 
+      console.log('Submitting application for job:', jobId);
+      console.log('File:', file.name);
+
       const formData = new FormData();
       formData.append('resume', file);
 
-      const response = await fetch(`http://localhost:5000/api/applications/apply/${jobId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
+      try {
+        const response = await fetch(`http://localhost:5000/api/applications/apply/${jobId}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData,
+        });
 
-      const data = await response.json();
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
 
-      if (response.ok) {
-        alert("Application submitted successfully!");
-        loadAppliedJobs(); // Refresh applied jobs
-      } else {
-        alert(data.message || "Error applying for job.");
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (response.ok) {
+          alert("Application submitted successfully! Check the insights for detailed analysis.");
+          loadAppliedJobs(); // Refresh applied jobs
+          closeModal();
+        } else {
+          console.error('Application error:', data);
+          alert(`Error applying for job: ${data.message || data.error || 'Unknown error'}`);
+          closeModal();
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+        alert(`Network error: ${error.message}. Please check if the server is running.`);
+        closeModal();
       }
-
-      closeModal();
     }
 
     // Function to load and display applied jobs
@@ -308,7 +322,15 @@
         const applications = data.applications;
 
         const appliedJobsContainer = document.getElementById('appliedJobs');
-        appliedJobsContainer.innerHTML = applications.map(app => `
+        appliedJobsContainer.innerHTML = applications.map(app => {
+          const insights = app.insights;
+          const insightsBadge = insights ? `
+            <button onclick="viewInsights('${app._id}')" class="btn btn-sm btn-outline-info ms-2">
+              <i class="fas fa-chart-line"></i> View Insights
+            </button>
+          ` : '';
+          
+          return `
           <div class="card job-card p-3">
             <h5 class="fw-bold">${app.job.title}</h5>
             <p><strong>Company:</strong> ${app.job.company}</p>
@@ -318,13 +340,22 @@
             <div class="mt-3 p-2 bg-light rounded">
               <p class="mb-1"><strong>Application Status:</strong> 
                 <span class="badge ${getStatusBadgeClass(app.status)}">${app.status}</span>
+                ${insightsBadge}
               </p>
               ${app.statusUpdatedBy ? 
                 `<p class="text-muted small mb-0">Last updated by ${app.statusUpdatedBy.name} on ${new Date(app.statusUpdatedAt).toLocaleDateString()}</p>` 
                 : ''}
+              ${insights ? `
+                <div class="mt-2">
+                  <span class="badge bg-${insights.color}-100 text-${insights.color}-800">
+                    <i class="fas fa-exclamation-triangle"></i> ${insights.severity} risk profile
+                  </span>
+                </div>
+              ` : ''}
             </div>
           </div>
-        `).join('');
+        `;
+        }).join('');
 
         // Update the UI to show total applications
         const totalApplications = applications.length;
@@ -343,6 +374,10 @@
         case 'Rejected': return 'bg-danger';
         default: return 'bg-secondary';
       }
+    }
+
+    function viewInsights(applicationId) {
+      window.open(`rejection-insights.html?applicationId=${applicationId}`, '_blank');
     }
 
     function closeModal() {

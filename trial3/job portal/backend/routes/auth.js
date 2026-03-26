@@ -253,9 +253,44 @@ router.get('/me', authMiddleware, async (req, res) => {
       email: user.email,
       companyName: user.companyName,
       profilePhoto: user.profilePhoto,
-      resume: user.resume
+      resume: user.resume,
+      skills: user.skills,
+      experience: user.experience
     });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update user profile (skills and experience)
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { skills, experience } = req.body;
+    const userId = req.user.userId;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (skills) {
+      user.skills = Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim()).filter(s => s);
+    }
+    
+    if (experience !== undefined) {
+      user.experience = parseInt(experience) || 0;
+    }
+
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Profile updated successfully',
+      user: {
+        skills: user.skills,
+        experience: user.experience
+      }
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
     res.status(500).json({ message: error.message });
   }
 });

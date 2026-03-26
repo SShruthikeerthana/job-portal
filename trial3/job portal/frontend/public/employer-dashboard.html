@@ -106,6 +106,7 @@
         <input required name="location" placeholder="Location" class="form-control mb-2">
         <input required name="salary" placeholder="Salary" class="form-control mb-2">
         <input required name="experience" placeholder="Required Experience (e.g., 2-3 years)" class="form-control mb-2">
+        <input name="skills" placeholder="Required Skills (comma-separated, e.g., React, Node.js, MongoDB)" class="form-control mb-2">
         <button class="btn btn-primary" type="submit">Post Job</button>
       </form>
     </div>
@@ -173,15 +174,29 @@
   document.getElementById('post-job-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    
+    console.log('=== POSTING NEW JOB ===');
+    console.log('Form data:', {
+      title: form.title.value,
+      description: form.description.value,
+      location: form.location.value,
+      salary: form.salary.value,
+      experience: form.experience.value,
+      skills: form.skills.value
+    });
+    
     const body = {
       title: form.title.value,
       description: form.description.value,
       location: form.location.value,
       salary: form.salary.value,
-      experience: form.experience.value
+      experience: form.experience.value,
+      skills: form.skills.value
     };
 
     try {
+      console.log('Sending job posting request...');
+      
       const response = await fetch('http://localhost:5000/api/jobs', {
         method: 'POST',
         headers: {
@@ -191,13 +206,22 @@
         body: JSON.stringify(body)
       });
 
+      console.log('Response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+
       if (!response.ok) {
-        throw new Error('Failed to post job');
+        console.error('Job posting error:', data);
+        throw new Error(data.message || data.errors?.join(', ') || 'Failed to post job');
       }
 
+      console.log('Job posted successfully:', data._id);
       form.reset();
       loadJobs();
+      alert('Job posted successfully!');
     } catch (error) {
+      console.error('Job posting error:', error);
       alert('Error posting job: ' + error.message);
     }
   });

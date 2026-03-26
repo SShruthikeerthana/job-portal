@@ -17,6 +17,10 @@ const jobSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  experienceYears: {
+    type: Number,
+    default: 0
+  },
   location: {
     type: String,
     required: true
@@ -24,6 +28,14 @@ const jobSchema = new mongoose.Schema({
   description: {
     type: String,
     required: true
+  },
+  skills: {
+    type: [String],
+    default: []
+  },
+  keywords: {
+    type: [String],
+    default: []
   },
   postedAt: {
     type: Date,
